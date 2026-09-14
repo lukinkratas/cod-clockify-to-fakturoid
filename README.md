@@ -1,4 +1,4 @@
-# clockify-to-fakturoid
+# Clockify to Fakturoid
 
 To install dependencies:
 
