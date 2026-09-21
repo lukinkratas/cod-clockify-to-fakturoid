@@ -50,26 +50,26 @@ if (!clockifyApiKey || !fakturoidClientId || !fakturoidClientSecret) {
 const { year, month, rate } = await getParams();
 
 const clockify = new ClockifyClient(process.env.CLOCKIFY_API_KEY);
-
 const { userId, workspaceId } = await clockify.getCurrentUser();
 
-const clockifySummaryRows = await clockify.getMonthlySummaryByProject(
+const { startDay, endDay } = monthRange(year, month);
+const clockifySummaryRows = await clockify.generateTimeEntrySummaryReport(
   workspaceId,
   userId,
-  year,
-  month,
+  startDay,
+  endDay,
+  groups: ["PROJECT"],
 );
 
 const fakturoid = new FakturoidClient(fakturoidClientId, fakturoidClientSecret);
 
-const fakturoidSlug = await fakturoid.getUserSlug();
+const fakturoidSlug = await fakturoid.getCurrentUserSlug();
 
 // subjects/kontakty name have to contain "Colours of Data" and have country set to CZ or GB
 const codSubjects = await fakturoid.searchSubjects(fakturoidSlug, "Colours of Data");
 
 const ALIASES = { GB: "UK" };
 const target = (country) => ALIASES[country] ?? country; // parens-free, safe here
-const issuedOn = monthRange(year, month).endDay;
 
 for (const [idx, subject] of codSubjects.entries()) {
   const rowsPerCountry = clockifySummaryRows.filter(
@@ -82,7 +82,7 @@ for (const [idx, subject] of codSubjects.entries()) {
     const payload = {
       subject_id: subject.id,
       due: 14,
-      issued_on: issuedOn,
+      issued_on: endDay,
       lines: toLines(rowsPerCountry, rate),
       // custom_id: customId,
       // taxable_fulfillment_due: "2026-08-31",

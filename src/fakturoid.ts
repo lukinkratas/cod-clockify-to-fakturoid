@@ -94,7 +94,7 @@ export class FakturoidClient {
     return this.token;
   }
 
-  async getUserSlug(): Promise<UserResponse> {
+  async getCurrentUserSlug(): Promise<UserResponse> {
     const userResponse = await this.request<UserResponse>(`${API_BASE}/user.json`);
 
     // parse

@@ -1,4 +1,4 @@
-import { fetchJson, monthRange } from "./utils.ts";
+import { fetchJson } from "./utils.ts";
 import { type invoiceLine } from "./fakturoid.ts";
 
 type Membership = {
@@ -68,14 +68,13 @@ export class ClockifyClient {
     return { userId, workspaceId };
   }
 
-  async getMonthlySummaryByProject(
+  async generateTimeEntrySummaryReport(
     workspaceId: string,
     userId: string,
-    year: number,
-    month: number,
+    startDay: string,
+    endDay: string,
+    groups: string[],
   ): Promise<SummaryResponse> {
-    const { startDay, endDay } = monthRange(year, month);
-
     const summaryResponse = await fetchJson<SummaryResponse>(
       `https://reports.api.clockify.me/v1/workspaces/${workspaceId}/reports/summary`,
       {
@@ -84,9 +83,7 @@ export class ClockifyClient {
         body: JSON.stringify({
           dateRangeStart: `${startDay}T00:00:00.000Z`,
           dateRangeEnd: `${endDay}T23:59:59.999Z`,
-          summaryFilter: {
-            groups: ["PROJECT"],
-          },
+          summaryFilter: groups,
           users: { ids: [userId], contains: "CONTAINS", status: "ALL" },
           amountShown: "HIDE_AMOUNT", // 403: You don't have a permission for that action
         }),
