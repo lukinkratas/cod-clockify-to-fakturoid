@@ -15,10 +15,11 @@ async function getParams() {
   const rl = readline.createInterface({ input, output });
 
   try {
-    const currentMonthStr = new Date().toISOString().slice(0, 7);
+    const now = new Date();
+    const prevMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
 
     console.log('Reporting year month in "YYYY-MM?" format:');
-    const dateInput = await rl.question(`Or confirm default "${currentMonthStr}" by ENTER.\n`);
+    const dateInput = await rl.question(`Or confirm default "${prevMonthStr}" by ENTER.\n`);
     const dateStr = dateInput ? dateInput : currentMonthStr;
 
     // parse
