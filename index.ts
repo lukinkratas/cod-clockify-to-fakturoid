@@ -29,7 +29,7 @@ async function saveEnvVar(key: string, value: string) {
 async function askAmount(rl: readline.Interface, key: string, label: string): Promise<number> {
   const envValue = process.env[key]?.trim();
 
-  console.log(`${label}:`);
+  console.log(label);
   const prompt = envValue ? `Or confirm default "${envValue}" by ENTER.\n` : "";
   const answer = (await rl.question(prompt)).trim() || envValue || "";
 
@@ -52,16 +52,16 @@ async function getParams() {
       .slice(0, 7);
 
     console.log('Reporting year month in "YYYY-MM?" format:');
-    const dateInput = await rl.question(`Or confirm default "${prevMonthStr}" by ENTER.\n`);
-    const dateStr = dateInput ? dateInput : prevMonthStr;
+    const dateStr = (await rl.question(`Or confirm default "${prevMonthStr}" by ENTER.\n`)) || prevMonthStr;
+    // const dateStr = dateInput ? dateInput : prevMonthStr;
 
     // parse
     const [rawYear, rawMonth] = dateStr.split("-");
     const year = Number(rawYear);
     const month = Number(rawMonth);
 
-    const rate = await askAmount(rl, "RATE", "Hourly rate in CZK (e.g.: 777)");
-    const discount = await askAmount(rl, "DISCOUNT", "Discount in CZK (e.g.: 7777)");
+    const rate = await askAmount(rl, "RATE", "Hourly rate in CZK (e.g.: 777):");
+    const discount = await askAmount(rl, "DISCOUNT", "Discount in CZK (e.g.: 7777):");
 
     console.log({ year, month, rate, discount });
     return { year, month, rate, discount };

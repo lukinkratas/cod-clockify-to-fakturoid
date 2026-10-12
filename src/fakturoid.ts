@@ -67,8 +67,6 @@ export function toDiscountLine(lines: InvoiceLine[], discount: number): InvoiceL
 
   return {
     name: `Sleva ve výši ${percent}% z ceny`,
-    quantity: "1",
-    unit_name: "",
     unit_price: (-discount).toFixed(2),
   };
 }
