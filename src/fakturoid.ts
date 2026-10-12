@@ -53,6 +53,26 @@ export function toLines(rows: TimeEntry[], rate: number): InvoiceLine[] {
   }));
 }
 
+function linesTotal(lines: InvoiceLine[]): number {
+  return lines.reduce((sum, l) => sum + Number(l.quantity) * Number(l.unit_price), 0);
+}
+
+export function toDiscountLine(lines: InvoiceLine[], discount: number): InvoiceLine {
+  const total = linesTotal(lines);
+  if (discount > total) {
+    throw new Error(`Discount ${discount} CZK exceeds invoice total ${total.toFixed(2)} CZK`);
+  }
+
+  const percent = Math.round((discount / total) * 100);
+
+  return {
+    name: `Sleva ve výši ${percent}% z ceny`,
+    quantity: "1",
+    unit_name: "",
+    unit_price: (-discount).toFixed(2),
+  };
+}
+
 export class FakturoidClient {
   private token: string | null = null;
 
