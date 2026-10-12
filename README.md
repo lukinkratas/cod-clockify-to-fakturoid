@@ -8,6 +8,12 @@ Simple "purpose build for Colours of Data consultants" automation script, that 1
 
   - Install Bun
 
+**Install dependencies:**
+
+```bash
+bun install
+```
+
 **To run:**
 
 ```bash
