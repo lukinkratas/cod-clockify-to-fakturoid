@@ -4,7 +4,7 @@ import { writeFile } from "node:fs/promises";
 
 import { fetchJson, monthRange } from "./src/utils.ts";
 import { ClockifyClient } from "./src/clockify.ts";
-import { FakturoidClient, toLines } from "./src/fakturoid.ts";
+import { FakturoidClient, toDiscountLine, toLines } from "./src/fakturoid.ts";
 
 // clockify.request() like fakturoid request
 
@@ -24,30 +24,47 @@ async function saveEnvVar(key: string, value: string) {
   await Bun.write(ENV_PATH, lines.join("\n") + "\n");
 }
 
+// Asks for a CZK amount; a value already in .env is offered as the ENTER default,
+// a missing one is saved to .env after the user enters it.
+async function askAmount(rl: readline.Interface, key: string, label: string): Promise<number> {
+  const envValue = process.env[key]?.trim();
+
+  console.log(label);
+  const prompt = envValue ? `Or confirm default "${envValue}" by ENTER.\n` : "";
+  const answer = (await rl.question(prompt)).trim() || envValue || "";
+
+  const amount = Number(answer);
+  if (!answer || !Number.isFinite(amount) || amount < 0) {
+    throw new Error(`Invalid ${key}: "${answer}"`);
+  }
+
+  if (!envValue) await saveEnvVar(key, answer);
+  return amount;
+}
+
 async function getParams() {
   const rl = readline.createInterface({ input, output });
 
   try {
     const now = new Date();
-    const prevMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
+    const prevMonthStr = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1))
+      .toISOString()
+      .slice(0, 7);
 
     console.log('Reporting year month in "YYYY-MM?" format:');
-    const dateInput = await rl.question(`Or confirm default "${prevMonthStr}" by ENTER.\n`);
-    const dateStr = dateInput ? dateInput : prevMonthStr;
+    const dateStr = (await rl.question(`Or confirm default "${prevMonthStr}" by ENTER.\n`)) || prevMonthStr;
+    // const dateStr = dateInput ? dateInput : prevMonthStr;
 
     // parse
     const [rawYear, rawMonth] = dateStr.split("-");
     const year = Number(rawYear);
     const month = Number(rawMonth);
 
-    const envRate = process.env.RATE?.trim();
-    const rateInput = envRate || (await rl.question("Hourly rate in CZK, (e.g.: 777): ")).trim();
-    const rate = Number(rateInput);
+    const rate = await askAmount(rl, "RATE", "Hourly rate in CZK (e.g.: 777):");
+    const discount = await askAmount(rl, "DISCOUNT", "Discount in CZK (e.g.: 7777):");
 
-    if (!envRate) await saveEnvVar("RATE", rateInput);
-
-    console.log({ year, month, rate });
-    return { year, month, rate };
+    console.log({ year, month, rate, discount });
+    return { year, month, rate, discount };
   } finally {
     rl.close();
   }
@@ -63,7 +80,7 @@ if (!clockifyApiKey || !fakturoidClientId || !fakturoidClientSecret) {
   );
 }
 
-const { year, month, rate } = await getParams();
+const { year, month, rate, discount } = await getParams();
 
 const clockify = new ClockifyClient(process.env.CLOCKIFY_API_KEY);
 const { userId, workspaceId } = await clockify.getCurrentUser();
@@ -83,6 +100,9 @@ const fakturoidSlug = await fakturoid.getCurrentUserSlug();
 // subjects/kontakty name have to contain "Colours of Data" and have country set to CZ or GB
 const codSubjects = await fakturoid.searchSubjects(fakturoidSlug, "Colours of Data");
 
+// discount goes to the CZ invoice only, so always process CZ first
+codSubjects.sort((a, b) => Number(b.country === "CZ") - Number(a.country === "CZ"));
+
 const ALIASES = { GB: "UK" };
 const target = (country) => ALIASES[country] ?? country; // parens-free, safe here
 
@@ -94,11 +114,14 @@ for (const [idx, subject] of codSubjects.entries()) {
   if (rowsPerCountry.length !== 0) {
     console.table(rowsPerCountry);
 
+    const lines = toLines(rowsPerCountry, rate);
+    if (subject.country === "CZ" && discount > 0) lines.push(toDiscountLine(lines, discount));
+
     const payload = {
       subject_id: subject.id,
       due: 14,
       issued_on: endDay,
-      lines: toLines(rowsPerCountry, rate),
+      lines,
       // custom_id: customId,
       // taxable_fulfillment_due: "2026-08-31",
       // document_type: "invoice",
