@@ -41,7 +41,7 @@ async function getParams() {
     const month = Number(rawMonth);
 
     const envRate = process.env.RATE?.trim();
-    const rateInput = envRate || (await rl.question("Rate: ")).trim();
+    const rateInput = envRate || (await rl.question("Hourly rate in CZK, (e.g.: 777): ")).trim();
     const rate = Number(rateInput);
 
     if (!envRate) await saveEnvVar("RATE", rateInput);
