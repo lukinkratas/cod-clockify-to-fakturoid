@@ -42,7 +42,11 @@ export type InvoicePayload = {
 };
 
 const API_BASE = "https://app.fakturoid.cz/api/v3";
-const USER_AGENT = "clockify-to-fakturoid";
+const DEFAULT_HEADERS = {
+  "Content-Type": "application/json",
+  Accept: "application/json",
+  "User-Agent": "clockify-to-fakturoid",
+};
 
 export function toLines(rows: TimeEntry[], rate: number): InvoiceLine[] {
   return rows.map((r) => ({
@@ -86,9 +90,7 @@ export class FakturoidClient {
     return await fetchJson<T>(url, {
       ...init,
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "User-Agent": USER_AGENT,
+        ...DEFAULT_HEADERS,
         Authorization: `Bearer ${await this.getAccessToken()}`,
       },
     });
@@ -100,9 +102,7 @@ export class FakturoidClient {
     const authResponse = await fetchJson<AuthResponse>(`${API_BASE}/oauth/token`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "User-Agent": USER_AGENT,
+        ...DEFAULT_HEADERS,
         Authorization: `Basic ${btoa(`${this.clientId}:${this.clientSecret}`)}`,
       },
       body: JSON.stringify({ grant_type: "client_credentials" }),
@@ -165,9 +165,7 @@ export class FakturoidClient {
     for (let attempt = 1; attempt <= attempts; attempt++) {
       const res = await fetch(pdfUrl, {
         headers: {
-          "Content-Type": "application/json",
-          Accept: "application/pdf",
-          "User-Agent": USER_AGENT,
+          ...DEFAULT_HEADERS,
           Authorization: `Bearer ${await this.getAccessToken()}`,
         },
       });
