@@ -52,7 +52,8 @@ async function getParams() {
       .slice(0, 7);
 
     console.log('Reporting year month in "YYYY-MM?" format:');
-    const dateStr = (await rl.question(`Or confirm default "${prevMonthStr}" by ENTER.\n`)) || prevMonthStr;
+    const dateStr =
+      (await rl.question(`Or confirm default "${prevMonthStr}" by ENTER.\n`)) || prevMonthStr;
     // const dateStr = dateInput ? dateInput : prevMonthStr;
 
     // parse
@@ -136,7 +137,7 @@ for (const [idx, subject] of codSubjects.entries()) {
     const { invoiceId, pdfUrl, num } = await fakturoid.createInvoice(fakturoidSlug, payload);
 
     const pdf = await fakturoid.downloadInvoicePdf(pdfUrl);
-    const path = `${INVOICE_DIR}/${num}_${invoiceId}.pdf`;
+    const path = `${INVOICE_DIR}/${num}_${subject.country}_${invoiceId}.pdf`;
     await Bun.write(path, pdf);
     console.log(`  saved ${path} (${pdf.byteLength} bytes)`);
   }
